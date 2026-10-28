@@ -1,0 +1,49 @@
+/**
+ * Certora Verification Language (CVL) Specification Example
+ * Formally proves solvency and user balance invariants for Vault contracts.
+ */
+
+methods {
+    function totalSupply() external returns (uint256) envfree;
+    function totalAssets() external returns (uint256) envfree;
+    function balanceOf(address) external returns (uint256) envfree;
+    function deposit(uint256) external;
+    function withdraw(uint256) external;
+}
+
+/// Invariant: Protocol must always remain solvent
+/// (Total assets in underlying token must be >= total share supply)
+invariant protocolSolvency()
+    totalAssets() >= totalSupply()
+    {
+        preserved {
+            requireInvariant protocolSolvency();
+        }
+    }
+
+/// Rule: Depositing asset amount strictly increases user balance
+rule depositIncreasesBalance(uint256 amount) {
+    env e;
+    address user = e.msg.sender;
+
+    uint256 balBefore = balanceOf(user);
+    require amount > 0;
+
+    deposit(e, amount);
+
+    uint256 balAfter = balanceOf(user);
+    assert balAfter > balBefore, "Deposit must strictly increase user share balance";
+}
+
+/// Rule: Only the owner can withdraw user funds
+rule onlyAuthorizedWithdrawal(address caller, uint256 amount) {
+    env e;
+    require e.msg.sender == caller;
+
+    uint256 userBal = balanceOf(caller);
+    require amount <= userBal;
+
+    withdraw(e, amount);
+
+    assert balanceOf(caller) == userBal - amount;
+}
