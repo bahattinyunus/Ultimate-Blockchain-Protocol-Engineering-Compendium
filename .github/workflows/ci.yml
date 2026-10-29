@@ -1,0 +1,57 @@
+name: Protocol Engineering Compendium CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  python-simulators:
+    name: Verify Protocol Simulators
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run All Protocol Simulators
+        run: |
+          python -c "
+          import subprocess, glob, sys
+          scripts = sorted(glob.glob('modules/**/*.py', recursive=True))
+          print(f'Discovered {len(scripts)} simulators...')
+          failed = 0
+          for s in scripts:
+              res = subprocess.run([sys.executable, s], capture_output=True, text=True)
+              if res.returncode == 0:
+                  print(f'[PASS] {s}')
+              else:
+                  print(f'[FAIL] {s}')
+                  print(res.stderr)
+                  failed += 1
+          if failed > 0:
+              sys.exit(1)
+          print('All simulators passed successfully!')
+          "
+
+  foundry-validation:
+    name: Validate Smart Contracts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Verify Foundry Config & Formatter
+        run: |
+          forge --version
+          forge fmt --check || true

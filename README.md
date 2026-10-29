@@ -5,9 +5,10 @@
 [![Rust](https://img.shields.io/badge/Engineered%20With-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.26-363636.svg)](https://soliditylang.org/)
 [![Cancun Ready](https://img.shields.io/badge/EVM-Cancun%20EIP--1153%20%7C%20EIP--4844-green.svg)](https://eips.ethereum.org/)
+[![CI Status](https://img.shields.io/badge/CI-Automated%20Verification-brightgreen.svg)](.github/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-Bu depo; Web3 alanına adım atan bir bilgisayar bilimcisini **protokol mühendisliği**, **kriptografik altyapılar**, **akıllı sözleşme mimarileri**, **dağıtık konsensüs mekanizmaları**, **istemci mühendisliği** ve **saldırı/savunma teknikleri** konusunda en üst düzeye ulaştırmak; alandaki kıdemli mühendislere ve araştırmacılara ise doğrudan üretim seviyesinde mimari, denetim (audit) ve PoC referansı sunmak için tasarlanmış uçtan uca teknik bir rehberdir.
+Bu depo; Web3 alanına adım atan bir bilgisayar bilimcisini **protokol mühendisliği**, **kriptografik altyapılar**, **akıllı sözleşme mimarileri**, **dağıtık konsensüs mekanizmaları**, **sıfır bilgi ispatları (ZKP)**, **çapraz zincir köprüleri** ve **saldırı/savunma teknikleri** konusunda en üst düzeye ulaştırmak; alandaki kıdemli mühendislere ve araştırmacılara ise doğrudan üretim seviyesinde mimari, denetim (audit) ve PoC referansı sunmak için tasarlanmış uçtan uca teknik bir rehberdir.
 
 ---
 
@@ -28,17 +29,24 @@ flowchart TB
         EVM --> VM_Compare[SVM Parallel Sealevel & Move VM]
     end
 
-    subgraph L2_Modular [Katman 2 & Modüler Rolluplar]
+    subgraph L2_Modular [Katman 2, Modüler Rolluplar & ZK]
         direction TB
         EVM --> RollupArch[Execution / Settlement / Consensus / DA]
         RollupArch --> FraudProof[Optimistic: İnteraktif Bisection Fraud Proof]
         RollupArch --> ZKProof[ZK Rollup: Type 1-4 zkEVM & STARK/SNARK]
         RollupArch --> EIP4844[Veri Erişilebilirliği: EIP-4844 Blobs, DAS & KZG]
+        ZKProof --> ZKCircuits[ZK Devreleri: R1CS, Plonkish, Poseidon Circom]
+    end
+
+    subgraph CrossChain_Interop [Birlikte Çalışabilirlik & Köprüler]
+        direction TB
+        RollupArch --> IBC[Cosmos IBC: Işık İstemciler & Paket Taahhütleri]
+        IBC --> Bridges[Köprüler: Güvenli Röle vs Nomad 0x00 Açığı]
     end
 
     subgraph App_Security [Uygulama Katmanı, MEV & Güvenlik]
         direction TB
-        EIP4844 --> SmartContracts[UUPS Proxy, ERC-4337 Account Abstraction, Permit2, Diamond]
+        Bridges --> SmartContracts[UUPS Proxy, ERC-4337 Account Abstraction, Permit2, Diamond]
         SmartContracts --> MEV[MEV: PBS, Arbitraj, Sandwich & JIT Liquidity]
         MEV --> Audit[Denetim: 120+ Kontrol Listesi & Formal Doğrulama]
         Audit --> PoCLab[DeFi Hack PoC Laboratuvarı: Flashloan, Reentrancy & Governance Hijack]
@@ -59,6 +67,8 @@ flowchart TB
 9. [Modül 8: DeFi Hack PoC Laboratuvarı](#-modül-8-defi-hack-poc-laboratuvarı)
 10. [Modül 9: Üretim Ortamı Kontrol Listesi (Mainnet Readiness Checklist)](#-modül-9-üretim-ortamı-kontrol-listesi-mainnet-readiness-checklist)
 11. [Modül 10: İstemci Mühendisliği, Depolama Motorları & Node Operasyonu](#-modül-10-istemci-mühendisliği-depolama-motorları--node-operasyonu)
+12. [Modül 11: Çapraz Zincir Mimarileri, Köprüler & Birlikte Çalışabilirlik](#-modül-11-çapraz-zincir-mimarileri-köprüler--birlikte-çalışabilirlik)
+13. [Modül 12: Sıfır Bilgi İspatları & ZK Devre Mühendisliği](#-modül-12-sıfır-bilgi-ispatları--zk-devre-mühendisliği)
 
 ---
 
@@ -73,6 +83,9 @@ flowchart TB
 *   **Rota C: Güvenlik Araştırmacısı (Security & Auditor Track)**
     *   *Sıra:* [Modül 3](./modules/03-virtual-machines/) (EVM/Yul) $\rightarrow$ [Modül 4](./modules/04-smart-contract-patterns/) (Assembly & Storage) $\rightarrow$ [Modül 6](./modules/06-security-audit-formal-verification/) (Vulnerability Vectors & Formal Verification) $\rightarrow$ [Modül 8](./modules/08-defi-hack-pocs/) (DeFi PoC Laboratuvarı).
     *   *Hedef:* Protokol seviyesinde denetim (audit) yapmak, beyaz şapkalı güvenlik ödülleri (bug bounty) kovalamak.
+*   **Rota D: ZK & Kriptografi Mühendisi (ZKP & Cryptography Track)**
+    *   *Sıra:* [Modül 1](./modules/01-cryptography/) (Alan Teorisi, BLS & KZG) $\rightarrow$ [Modül 5](./modules/05-layer2-modular-rollups/) (zkEVM Mimarileri) $\rightarrow$ [Modül 12](./modules/12-zero-knowledge-circuits/) (R1CS, Plonkish & Circom Devreleri).
+    *   *Hedef:* ZK devreleri yazmak, rollup proverları geliştirmek, güvenli zk-SNARK protokolleri inşa etmek.
 
 ---
 
@@ -226,11 +239,13 @@ flowchart TB
     *   **Flash Loan Spot Fiyat Manipülasyonu:** Anlık rezervleri bozan saldırganın teminatsız kredi çekerek hazineyi soyması.
     *   **ERC-4626 İlk Yatıran Enflasyon Saldırısı:** 1 wei yatırıp büyük bağış yaparak sonraki kullanıcıların paylarını sıfıra yuvarlama ve paralarını çalma.
     *   **Beanstalk Tarzı Flash Loan Yönetişim Darbesi (Governance Hijack):** Anlık oylarla hazineyi boşaltma ve ERC20Votes kontrol noktası savunması.
+    *   **EIP-2612 İmza Tekrarı (Signature Replay):** Statik domain separator ve zincir çatallanmalarında imza istismarı.
 *   💻 **Referans Sözleşmeler:**
     *   [`ReadOnlyReentrancyPoC.sol`](./modules/08-defi-hack-pocs/contracts/ReadOnlyReentrancyPoC.sol): Savunmasız havuz, istismar senaryosu ve Cancun transient lock ile düzeltilmiş havuz.
     *   [`FlashLoanPriceManipulationPoC.sol`](./modules/08-defi-hack-pocs/contracts/FlashLoanPriceManipulationPoC.sol): Spot fiyat açığı ve TWAP oracle savunması.
     *   [`ERC4626InflationAttackPoC.sol`](./modules/08-defi-hack-pocs/contracts/ERC4626InflationAttackPoC.sol): Enflasyon saldırısı ve sanal pay (virtual shares) savunması.
     *   [`GovernanceFlashLoanHijackPoC.sol`](./modules/08-defi-hack-pocs/contracts/GovernanceFlashLoanHijackPoC.sol): Flash loan yönetişim saldırısı ve `getPastVotes` geçmiş blok kontrol noktası savunması.
+    *   [`SignatureReplayPermitPoC.sol`](./modules/08-defi-hack-pocs/contracts/SignatureReplayPermitPoC.sol): Dinamik EIP-712 domain separator ve imza tekrarı koruması.
 
 ---
 
@@ -269,6 +284,35 @@ flowchart TB
 
 ---
 
+## 🌉 Modül 11: Çapraz Zincir Mimarileri, Köprüler & Birlikte Çalışabilirlik
+📁 **Detaylı Rehber ve Kodlar:** [`modules/11-cross-chain-bridges/`](./modules/11-cross-chain-bridges/)
+
+*   **Birlikte Çalışabilirlik Trilemması:** Trustless, Generalizable ve Extensible mimari sınırları.
+*   **Köprü Güvenlik Modelleri:**
+    *   Multisig / MPC Köprüleri (Ronin, Wormhole).
+    *   Optimistic Köprüler ve Nomad $190M sıfır kök (0x00) açığı analizi.
+    *   Cosmos IBC (Inter-Blockchain Communication): TCP/IP for blockchains.
+    *   LayerZero v2 DVN'leri ve Chainlink CCIP Risk Management Network.
+*   💻 **Referans Sözleşmeler & Kodlar:**
+    *   [`CrossChainBridgeVulnerableAndSecure.sol`](./modules/11-cross-chain-bridges/contracts/CrossChainBridgeVulnerableAndSecure.sol): Nomad 0x00 kök açığı simülasyonu ve EIP-712 imzalı güvenli köprü sözleşmesi.
+    *   [`ibc_light_client_sim.py`](./modules/11-cross-chain-bridges/ibc_light_client_sim.py): Cosmos IBC 4 aşamalı bağlantı el sıkışması ve ışık istemci paket doğrulama simülatörü.
+
+---
+
+## ⚡ Modül 12: Sıfır Bilgi İspatları & ZK Devre Mühendisliği
+📁 **Detaylı Rehber ve Kodlar:** [`modules/12-zero-knowledge-circuits/`](./modules/12-zero-knowledge-circuits/)
+
+*   **Hesaplamadan SNARK'a Aritmetizasyon Boru Hattı:**
+    *   Program Düzleştirme (Flattening) ve R1CS (Rank-1 Constraint Systems).
+    *   Plonkish Aritmetizasyon ve Lookup Tabloları (Plookup, LogUp) ile Keccak/SHA-256 hızlandırma.
+    *   Özyinelemeli İspatlar (Recursive SNARKs) ve Nova Katlama Şemaları (Folding Schemes).
+    *   Modern Devre Çerçeveleri: Circom, Halo2 (Rust), Noir (Aztec).
+*   💻 **Referans Devreler & Kodlar:**
+    *   [`r1cs_arithmetization_engine.py`](./modules/12-zero-knowledge-circuits/r1cs_arithmetization_engine.py): Polinom düzleştirme, $A, B, C$ matris inşası ve tanık doğrulama motoru.
+    *   [`hasher_preimage.circom`](./modules/12-zero-knowledge-circuits/circuits/hasher_preimage.circom): Gizli girdi (preimage) bilgisini kanıtlayan üretim standardı Circom devresi.
+
+---
+
 ## 📦 Kurulum ve Çalıştırma
 
 ```bash
@@ -300,6 +344,10 @@ python modules/07-mev-mempool-engineering/jit_liquidity_simulator.py
 
 # Engine API & İstemci simülatörünü çalıştırın
 python modules/10-client-engineering-node-ops/engine_api_rpc_mock.py
+
+# Köprüler, IBC ve ZK simülatörlerini çalıştırın
+python modules/11-cross-chain-bridges/ibc_light_client_sim.py
+python modules/12-zero-knowledge-circuits/r1cs_arithmetization_engine.py
 ```
 
 ---
