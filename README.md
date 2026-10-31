@@ -5,10 +5,13 @@
 [![Rust](https://img.shields.io/badge/Engineered%20With-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.26-363636.svg)](https://soliditylang.org/)
 [![Cancun Ready](https://img.shields.io/badge/EVM-Cancun%20EIP--1153%20%7C%20EIP--4844-green.svg)](https://eips.ethereum.org/)
+[![Restaking](https://img.shields.io/badge/Restaking-EigenLayer%20%7C%20Symbiotic-blueviolet.svg)](modules/13-restaking-shared-security/)
+[![Intents](https://img.shields.io/badge/Intents-ERC--7683%20%7C%20Solvers-ff69b4.svg)](modules/14-intents-solvers-erc7683/)
+[![Post-Quantum](https://img.shields.io/badge/Post--Quantum-Lattice%20ML--DSA-blue.svg)](modules/15-post-quantum-cryptography/)
 [![CI Status](https://img.shields.io/badge/CI-Automated%20Verification-brightgreen.svg)](.github/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-Bu depo; Web3 alanına adım atan bir bilgisayar bilimcisini **protokol mühendisliği**, **kriptografik altyapılar**, **akıllı sözleşme mimarileri**, **dağıtık konsensüs mekanizmaları**, **sıfır bilgi ispatları (ZKP)**, **çapraz zincir köprüleri** ve **saldırı/savunma teknikleri** konusunda en üst düzeye ulaştırmak; alandaki kıdemli mühendislere ve araştırmacılara ise doğrudan üretim seviyesinde mimari, denetim (audit) ve PoC referansı sunmak için tasarlanmış uçtan uca teknik bir rehberdir.
+Bu depo; Web3 alanına adım atan bir bilgisayar bilimcisini **protokol mühendisliği**, **kriptografik altyapılar**, **akıllı sözleşme mimarileri**, **dağıtık konsensüs mekanizmaları**, **sıfır bilgi ispatları (ZKP)**, **paylaşımlı güvenlik (restaking)**, **niyet odaklı çözücüler (intents)**, **kuantum sonrası kriptografi** ve **saldırı/savunma teknikleri** konusunda en üst düzeye ulaştırmak; alandaki kıdemli mühendislere ve araştırmacılara ise doğrudan üretim seviyesinde mimari, denetim (audit) ve PoC referansı sunmak için tasarlanmış uçtan uca teknik bir rehberdir.
 
 ---
 
@@ -16,16 +19,23 @@ Bu depo; Web3 alanına adım atan bir bilgisayar bilimcisini **protokol mühendi
 
 ```mermaid
 flowchart TB
-    subgraph L1_Consensus [Katman 1: Konsensüs & Veri Altyapısı]
+    subgraph L1_Consensus [Katman 1: Konsensüs & Kriptografik Güvenlik]
         direction TB
         P2P[P2P Ağ: libp2p / DiscV5 / Gossipsub] --> Gasper[Konsensüs: LMD-GHOST + Casper FFG]
         Gasper --> EngineAPI[Engine API: Forkchoice & Execution]
         EngineAPI --> StateStorage[Durum Deposu: MDBX / RocksDB]
+        StateStorage --> PostQuantum[Kuantum Sonrası Güvenlik: ML-DSA / Dilithium & Hibrit İmzalar]
+    end
+
+    subgraph Restaking_Layer [Paylaşımlı Güvenlik & AVS Katmanı]
+        direction TB
+        StateStorage --> Restaking[EigenLayer & Symbiotic: Operator Delegasyonu]
+        Restaking --> AVS[AVS Kuorum Konsensüsü & Kaskat Slashing Koordinatörü]
     end
 
     subgraph EVM_Execution [Yürütme Ortamı & Sanal Makineler]
         direction TB
-        StateStorage --> EVM[Cancun EVM: TSTORE/TLOAD, MSTORE, SLOAD]
+        Restaking --> EVM[Cancun EVM: TSTORE/TLOAD, MSTORE, SLOAD]
         EVM --> VM_Compare[SVM Parallel Sealevel & Move VM]
     end
 
@@ -38,15 +48,16 @@ flowchart TB
         ZKProof --> ZKCircuits[ZK Devreleri: R1CS, Plonkish, Poseidon Circom]
     end
 
-    subgraph CrossChain_Interop [Birlikte Çalışabilirlik & Köprüler]
+    subgraph CrossChain_Intents [Birlikte Çalışabilirlik & Niyetler]
         direction TB
         RollupArch --> IBC[Cosmos IBC: Işık İstemciler & Paket Taahhütleri]
         IBC --> Bridges[Köprüler: Güvenli Röle vs Nomad 0x00 Açığı]
+        Bridges --> ERC7683[ERC-7683 Niyet Standartları: Dutch Decay & Çözücü / Solver Pazarı]
     end
 
     subgraph App_Security [Uygulama Katmanı, MEV & Güvenlik]
         direction TB
-        Bridges --> SmartContracts[UUPS Proxy, ERC-4337 Account Abstraction, Permit2, Diamond]
+        ERC7683 --> SmartContracts[UUPS Proxy, ERC-4337 Account Abstraction, Permit2, Diamond]
         SmartContracts --> MEV[MEV: PBS, Arbitraj, Sandwich & JIT Liquidity]
         MEV --> Audit[Denetim: 120+ Kontrol Listesi & Formal Doğrulama]
         Audit --> PoCLab[DeFi Hack PoC Laboratuvarı: Flashloan, Reentrancy & Governance Hijack]
@@ -69,6 +80,9 @@ flowchart TB
 11. [Modül 10: İstemci Mühendisliği, Depolama Motorları & Node Operasyonu](#-modül-10-istemci-mühendisliği-depolama-motorları--node-operasyonu)
 12. [Modül 11: Çapraz Zincir Mimarileri, Köprüler & Birlikte Çalışabilirlik](#-modül-11-çapraz-zincir-mimarileri-köprüler--birlikte-çalışabilirlik)
 13. [Modül 12: Sıfır Bilgi İspatları & ZK Devre Mühendisliği](#-modül-12-sıfır-bilgi-ispatları--zk-devre-mühendisliği)
+14. [Modül 13: Yeniden Stake Etme, Paylaşımlı Güvenlik & AVS](#-modül-13-yeniden-stake-etme-paylaşımlı-güvenlik--avs)
+15. [Modül 14: Niyet Odaklı Mimariler, Çözücüler & ERC-7683](#-modül-14-niyet-odaklı-mimariler-çözücüler--erc-7683)
+16. [Modül 15: Kuantum Sonrası Kriptografi & Hibrit Durum Makineleri](#-modül-15-kuantum-sonrası-kriptografi--hibrit-durum-makineleri)
 
 ---
 
@@ -84,8 +98,14 @@ flowchart TB
     *   *Sıra:* [Modül 3](./modules/03-virtual-machines/) (EVM/Yul) $\rightarrow$ [Modül 4](./modules/04-smart-contract-patterns/) (Assembly & Storage) $\rightarrow$ [Modül 6](./modules/06-security-audit-formal-verification/) (Vulnerability Vectors & Formal Verification) $\rightarrow$ [Modül 8](./modules/08-defi-hack-pocs/) (DeFi PoC Laboratuvarı).
     *   *Hedef:* Protokol seviyesinde denetim (audit) yapmak, beyaz şapkalı güvenlik ödülleri (bug bounty) kovalamak.
 *   **Rota D: ZK & Kriptografi Mühendisi (ZKP & Cryptography Track)**
-    *   *Sıra:* [Modül 1](./modules/01-cryptography/) (Alan Teorisi, BLS & KZG) $\rightarrow$ [Modül 5](./modules/05-layer2-modular-rollups/) (zkEVM Mimarileri) $\rightarrow$ [Modül 12](./modules/12-zero-knowledge-circuits/) (R1CS, Plonkish & Circom Devreleri).
-    *   *Hedef:* ZK devreleri yazmak, rollup proverları geliştirmek, güvenli zk-SNARK protokolleri inşa etmek.
+    *   *Sıra:* [Modül 1](./modules/01-cryptography/) (Alan Teorisi, BLS & KZG) $\rightarrow$ [Modül 5](./modules/05-layer2-modular-rollups/) (zkEVM Mimarileri) $\rightarrow$ [Modül 12](./modules/12-zero-knowledge-circuits/) (R1CS, Plonkish & Circom Devreleri) $\rightarrow$ [Modül 15](./modules/15-post-quantum-cryptography/) (Kafes Tabanlı ML-DSA).
+    *   *Hedef:* ZK devreleri yazmak, rollup proverları geliştirmek, kuantum dirençli protokoller tasarlamak.
+*   **Rota E: Paylaşımlı Güvenlik & AVS Mimarı (Restaking & Shared Security Track)**
+    *   *Sıra:* [Modül 2](./modules/02-distributed-systems-consensus/) (Konsensüs) $\rightarrow$ [Modül 10](./modules/10-client-engineering-node-ops/) (Node Ops) $\rightarrow$ [Modül 13](./modules/13-restaking-shared-security/) (EigenLayer/Symbiotic AVS & Slashing).
+    *   *Hedef:* Merkeziyetsiz AVS ağları kurmak, operatör koordinatörü yazmak ve slashing risk modelleri geliştirmek.
+*   **Rota F: Niyetler & Çözücü Mühendisi (Intents & Solvers Track)**
+    *   *Sıra:* [Modül 4](./modules/04-smart-contract-patterns/) (Permit2 & ERC-4337) $\rightarrow$ [Modül 7](./modules/07-mev-mempool-engineering/) (MEV & Arbitraj) $\rightarrow$ [Modül 14](./modules/14-intents-solvers-erc7683/) (ERC-7683 Çapraz Zincir Çözücüler).
+    *   *Hedef:* CoW batch açık artırmaları çalıştırmak, gazsız kullanıcı deneyimi ve çapraz zincir likidite çözücüleri yazmak.
 
 ---
 
@@ -313,41 +333,63 @@ flowchart TB
 
 ---
 
-## 📦 Kurulum ve Çalıştırma
+## 💎 Modül 13: Yeniden Stake Etme, Paylaşımlı Güvenlik & AVS
+📁 **Detaylı Rehber ve Kodlar:** [`modules/13-restaking-shared-security/`](./modules/13-restaking-shared-security/)
+
+*   **Paylaşımlı Güvenlik & Restaking Paradigması:**
+    *   EigenLayer & Symbiotic mimari ve çekirdek farkları.
+    *   AVS (Actively Validated Services) görev orkestrasyonu ve $\%67$ kuorum konsensüsü.
+    *   Objektif vs Subjektif Slashing ve kaskat sermaye bulaşma riskleri (Cascading Contagion).
+*   💻 **Referans Sözleşmeler & Kodlar:**
+    *   [`AVSSlashingCoordinator.sol`](./modules/13-restaking-shared-security/contracts/AVSSlashingCoordinator.sol): AVS operatör delegasyonu, görev doğrulama ve zincir üstü slashing koordinatörü.
+    *   [`eigenlayer_restaking_sim.py`](./modules/13-restaking-shared-security/eigenlayer_restaking_sim.py): Çoklu AVS paylaşımı, ağırlıklı kuorum konsensüsü ve kaskat slashing riski simülatörü.
+
+---
+
+## 🎯 Modül 14: Niyet Odaklı Mimariler, Çözücüler & ERC-7683
+📁 **Detaylı Rehber ve Kodlar:** [`modules/14-intents-solvers-erc7683/`](./modules/14-intents-solvers-erc7683/)
+
+*   **İşlem (Imperative) vs Niyet (Declarative Intent):**
+    *   UniswapX ve Across tarafından geliştirilen ERC-7683 Çapraz Zincir Niyet Standardı.
+    *   Hollanda Açık Artırması (Dutch Auction) fiyat azalımı ve kullanıcı kâr fazlalığı (Surplus).
+    *   Çözücü (Solver) ekonomisi, CEX arbitrajı ve CoW (Coincidence of Wants) eşleşmesi.
+*   💻 **Referans Sözleşmeler & Kodlar:**
+    *   [`ERC7683CrossChainSettler.sol`](./modules/14-intents-solvers-erc7683/contracts/ERC7683CrossChainSettler.sol): ERC-7683 Origin Escrow ve Destination Settler sözleşmesi.
+    *   [`intent_solver_auction_sim.py`](./modules/14-intents-solvers-erc7683/intent_solver_auction_sim.py): Hollanda açık artırması fiyat azalımı ve rekabetçi çözücü simülasyonu.
+
+---
+
+## 🛡️ Modül 15: Kuantum Sonrası Kriptografi & Hibrit Durum Makineleri
+📁 **Detaylı Rehber ve Kodlar:** [`modules/15-post-quantum-cryptography/`](./modules/15-post-quantum-cryptography/)
+
+*   **Kuantum Tehditleri:**
+    *   Shor Algoritması ile $O(\log^3 N)$ sürede `secp256k1` eliptik eğri özel anahtarının kırılması.
+    *   Grover Algoritması ile hash fonksiyonu arama uzayının karekök indirgemesi ($2^{256} \rightarrow 2^{128}$).
+*   **Kafes Tabanlı Kriptografi (Lattice-Based NIST FIPS):**
+    *   Module-LWE, Inhomogeneous Short Integer Solution (ISIS) ve $R_q = \mathbb{Z}_q[X]/(X^n + 1)$ halka cebiri.
+    *   NIST FIPS 204 ML-DSA (Dilithium) dijital imza standardı ve red örneklemesi (rejection sampling).
+    *   ERC-4337 Hesap Soyutlama üzerinden ECDSA + ML-DSA Hibrit (Dual) imza doğrulama geçiş mimarisi.
+*   💻 **Çalıştırılabilir Kodlar:**
+    *   [`post_quantum_lattice_signatures.py`](./modules/15-post-quantum-cryptography/post_quantum_lattice_signatures.py): Halka polinom aritmetiği, LWE anahtar üretimi, ML-DSA imzalama/doğrulama ve kuantum dayanımlı hibrit hesap motoru.
+
+---
+
+## 📦 Kurulum, Doğrulama ve Benchmark
+
+Tüm modüllerdeki simülasyonları tek bir komutla doğrulamak ve performans metriklerini görmek için yerleşik Benchmark CLI motorunu çalıştırabilirsiniz:
 
 ```bash
 # Depoyu klonlayın
 git clone https://github.com/bahattinyunus/Ultimate-Blockchain-Protocol-Engineering-Compendium.git
 cd Ultimate-Blockchain-Protocol-Engineering-Compendium
 
-# Kriptografi simülatörlerini çalıştırın
-python modules/01-cryptography/secp256k1_ecdsa_demo.py
-python modules/01-cryptography/bls_signature_aggregation.py
-python modules/01-cryptography/verkle_tree_simulator.py
-python modules/01-cryptography/merkle_tree.py
-python modules/01-cryptography/kzg_polynomial_commitment.py
+# Tüm 20 protokol simülasyonunu tek seferde test edin ve benchmark tablosunu görün:
+python compendium_benchmark_cli.py
 
-# Konsensüs, P2P ve Sanal Makine simülatörlerini çalıştırın
-python modules/02-distributed-systems-consensus/gossipsub_network_sim.py
-python modules/02-distributed-systems-consensus/casper_ffg_lmd_ghost_sim.py
-python modules/03-virtual-machines/svm_parallel_runtime_sim.py
-
-# L2 ve Rollup simülatörlerini çalıştırın
-python modules/05-layer2-modular-rollups/interactive_fraud_proof_bisection.py
-python modules/05-layer2-modular-rollups/das_erasure_coding_sim.py
-python modules/05-layer2-modular-rollups/blob_gas_calculator.py
-
-# MEV motorlarını çalıştırın
-python modules/07-mev-mempool-engineering/bellman_ford_arbitrage.py
-python modules/07-mev-mempool-engineering/sandwich_attack_sim.py
-python modules/07-mev-mempool-engineering/jit_liquidity_simulator.py
-
-# Engine API & İstemci simülatörünü çalıştırın
-python modules/10-client-engineering-node-ops/engine_api_rpc_mock.py
-
-# Köprüler, IBC ve ZK simülatörlerini çalıştırın
-python modules/11-cross-chain-bridges/ibc_light_client_sim.py
-python modules/12-zero-knowledge-circuits/r1cs_arithmetization_engine.py
+# Belirli bir modülü filtreleyerek çalıştırın (Örn: quantum, mev, restaking, zkp):
+python compendium_benchmark_cli.py --filter quantum
+python compendium_benchmark_cli.py --filter restaking
+python compendium_benchmark_cli.py --filter mev
 ```
 
 ---
